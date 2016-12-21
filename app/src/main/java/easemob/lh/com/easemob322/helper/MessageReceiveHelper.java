@@ -17,7 +17,6 @@ import java.util.Map;
  * getFrom():获取消息发送者的用户名
  * getTo():获取消息接收者的用户名
  * getUserName():获取通话对象
- *
  */
 
 public class MessageReceiveHelper {
@@ -63,6 +62,7 @@ public class MessageReceiveHelper {
             }
         };
 
+        //通用的回调函数接口
         EMCallBack emCallBack1 = new EMCallBack() {
             @Override
             public void onSuccess() {
@@ -71,6 +71,8 @@ public class MessageReceiveHelper {
 
             @Override
             public void onError(int i, String s) {
+                //错误代码
+                //包含文本类型的错误描述。
 
             }
 
@@ -89,6 +91,7 @@ public class MessageReceiveHelper {
     public List<EMMessage> getAllMessages(String username) {
         //建议初始化SDK的时候设置成每个会话默认load一条消息，节省加载会话的时间，
         // 方法为： options.setNumberOfMessagesLoaded(1);
+        //EMConversation 代表和一个用户的对话，包含发送和接收的消息
         EMConversation conversation = EMClient.getInstance().chatManager().getConversation(username);
         //获取此会话的所有消息
         List<EMMessage> messages = conversation.getAllMessages();
@@ -100,7 +103,7 @@ public class MessageReceiveHelper {
      *
      * @return
      */
-    public List<EMMessage> loadMoreMsgFromDB(EMMessage emMessage,int pagesize) {
+    public List<EMMessage> loadMoreMsgFromDB(EMMessage emMessage, int pagesize) {
         //建议初始化SDK的时候设置成每个会话默认load一条消息，节省加载会话的时间，
         // 方法为： options.setNumberOfMessagesLoaded(1);
         EMConversation conversation = EMClient.getInstance().chatManager().getConversation(emMessage.getTo());
@@ -163,6 +166,7 @@ public class MessageReceiveHelper {
     }
 
     /**
+     * 获取当前所有的会话
      * 如果出现偶尔返回的conversations的sizi为0，
      * 那很有可能是没有调用EMClient.getInstance().chatManager().loadAllConversations()
      * 或者调用顺序不对

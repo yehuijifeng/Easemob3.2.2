@@ -1,5 +1,16 @@
 package easemob.lh.com.easemob322;
 
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Toast;
+
+import com.hyphenate.EMError;
+import com.hyphenate.chat.EMClient;
+import com.hyphenate.chat.EMMessage;
+
+import easemob.lh.com.easemob322.chatrow.EaseChatRowVoicePlayClickListener;
+import easemob.lh.com.easemob322.constant.EaseConstant;
+
 /**
  * Created by LuHao on 2016/12/10.
  * 环信3.0 api
@@ -33,6 +44,99 @@ public class EasemobAPI {
      * -keep class com.hyphenate.** {*;}
      * -dontwarn  com.hyphenate.**
      * */
+
+    /**
+     * 按住说话，发送语音：
+     * <p>
+     * return voiceRecorderView.onPressToSpeakBtnTouch(v, event, new EaseVoiceRecorderCallback() {
+     *
+     * @Override public void onVoiceRecordComplete(String voiceFilePath, int voiceTimeLength) {
+     * sendVoiceMessage(voiceFilePath, voiceTimeLength);
+     * }
+     * });
+     */
+    protected void sendVoiceMessage(String filePath, int length) {
+        //创建一个发送语音的聊天
+        EMMessage message = EMMessage.createVoiceSendMessage(filePath, length, "发送目标人id");
+        sendMessage(message);
+    }
+
+    protected void sendMessage(EMMessage message) {
+        if (message == null) {
+            return;
+        }
+        if (chatFragmentHelper != null) {
+            //set extension
+            chatFragmentHelper.onSetMessageAttributes(message);
+        }
+        if (chatType == EaseConstant.CHATTYPE_GROUP) {
+            message.setChatType(EMMessage.ChatType.GroupChat);
+        } else if (chatType == EaseConstant.CHATTYPE_CHATROOM) {
+            message.setChatType(EMMessage.ChatType.ChatRoom);
+        }
+        //send message
+        EMClient.getInstance().chatManager().sendMessage(message);
+        //refresh ui
+        if (isMessageListInited) {
+            messageList.refreshSelectLast();
+        }
+    }
+
+    /**
+     * 发送语音的方法
+     * on speak button touched
+     *
+     * @param v
+     * @param event
+     */
+    public boolean onPressToSpeakBtnTouch(View v, MotionEvent event, EaseVoiceRecorderCallback recorderCallback) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                try {
+                    if (EaseChatRowVoicePlayClickListener.isPlaying)
+                        EaseChatRowVoicePlayClickListener.currentPlayListener.stopPlayVoice();
+                    v.setPressed(true);
+                    startRecording();
+                } catch (Exception e) {
+                    v.setPressed(false);
+                }
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (event.getY() < 0) {
+                    showReleaseToCancelHint();
+                } else {
+                    showMoveUpToCancelHint();
+                }
+                return true;
+            case MotionEvent.ACTION_UP:
+                v.setPressed(false);
+                if (event.getY() < 0) {
+                    // discard the recorded audio.
+                    discardRecording();
+                } else {
+                    // stop recording and send voice file
+                    try {
+                        int length = stopRecoding();
+                        if (length > 0) {
+                            if (recorderCallback != null) {
+                                recorderCallback.onVoiceRecordComplete(getVoiceFilePath(), length);
+                            }
+                        } else if (length == EMError.FILE_INVALID) {
+                            Toast.makeText(context, R.string.Recording_without_permission, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, R.string.The_recording_time_is_too_short, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(context, R.string.send_failure_please, Toast.LENGTH_SHORT).show();
+                    }
+                }
+                return true;
+            default:
+                discardRecording();
+                return false;
+        }
+    }
 
 
 }
